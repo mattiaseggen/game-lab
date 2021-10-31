@@ -10,34 +10,31 @@ public class MapGenerator : MonoBehaviour
     public int octaves;
     public float amplitude;
     [Range(0, 10)]
-    public float redistribution = 1;
-
-    [Range(0, 1)]
-    public float water;
-
-    public Biome[] biomes;
+    public float redistribution = 1f;
+    public float xOffset = 0f;
+    public float yOffset = 0f;
 
     public bool autoUpdate;
 
     public void GenerateMap()
     {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapWidth, mapHeight, scale, octaves, redistribution);
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapWidth, mapHeight, scale, octaves, redistribution, xOffset, yOffset);
 
         Mesh mesh = GetComponent<MeshFilter>().sharedMesh;
         MeshGenerator meshGenerator = new MeshGenerator();
-        meshGenerator.GenerateMesh(noiseMap, mesh, mapWidth, mapHeight, amplitude, biomes);
+        meshGenerator.GenerateMesh(noiseMap, mesh, mapWidth, mapHeight, amplitude);
 
-        Color[] colorMap = meshGenerator.colorMap;
-        Texture2D texture = TextureGenerator.GenerateTexture(colorMap, mapWidth, mapHeight);
+        //Color[] colorMap = meshGenerator.colorMap;
+        //Texture2D texture = TextureGenerator.GenerateTexture(colorMap, mapWidth, mapHeight);
         Renderer rend = GetComponent<MeshRenderer>();
-        rend.sharedMaterial.mainTexture = texture;
+        //rend.sharedMaterial.mainTexture = texture;
 
-        //if (!rend.sharedMaterial)
-        //{
-        //    rend.sharedMaterial = new Material(Shader.Find("Custom/ColorShader"));
-        //}
-    //    rend.sharedMaterial.SetFloat("_MinHeight", meshGenerator.minHeight);
-    //    rend.sharedMaterial.SetFloat("_MaxHeight", meshGenerator.maxHeight);
+        if (!rend.sharedMaterial)
+        {
+            rend.sharedMaterial = new Material(Shader.Find("Custom/TextureShader"));
+        }
+        rend.sharedMaterial.SetFloat("_MinHeight", meshGenerator.minHeight);
+        rend.sharedMaterial.SetFloat("_MaxHeight", meshGenerator.maxHeight);
     }
 
     public void OnValidate()
@@ -48,11 +45,3 @@ public class MapGenerator : MonoBehaviour
     }
 
 }
-
-[System.Serializable]
-public struct Biome {
-    public string name;
-    public Color color;
-    [Range(0,1)]
-    public float height;
-};

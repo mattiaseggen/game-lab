@@ -2,7 +2,7 @@ using UnityEngine;
 
 public static class Noise
 {
-    public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, float scale, int octaves, float exp)
+    public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, float scale, int octaves, float exp, float xOffset, float yOffset)
     {
 
         if (scale <= 0)
@@ -15,8 +15,8 @@ public static class Noise
         {
             for (int x = 0; x <= mapWidth; x++)
             {
-                float nx = x / scale;
-                float ny = y / scale;
+                float nx = x / scale + xOffset;
+                float ny = y / scale + yOffset;
                 float e = 0;
                 float amplitude = 0;
 

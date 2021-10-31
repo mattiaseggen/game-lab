@@ -6,9 +6,9 @@ public class MeshGenerator
     public float maxHeight;
     public Color[] colorMap;
 
-    public void GenerateMesh(float[,] noiseMap, Mesh mesh, int mapWidth, int mapHeight, float amplitude, Biome[] biomes)
+    public void GenerateMesh(float[,] noiseMap, Mesh mesh, int mapWidth, int mapHeight, float amplitude)
     {
-        mesh.name = "Mesh yo";
+        mesh.name = "Terrain Mesh";
 
         Vector3[] vertices = new Vector3[(mapWidth + 1) * (mapHeight + 1)];
         Vector2[] uv = new Vector2[vertices.Length];
@@ -33,22 +33,22 @@ public class MeshGenerator
         mesh.vertices = vertices;
         mesh.uv = uv;
 
-        colorMap = new Color[vertices.Length];
-        for (int z = 0, i = 0; z <= mapHeight; z++)
-        {
-            for (int x = 0; x <= mapWidth; x++, i++)
-            {
-                float height = (vertices[i].y - minHeight) / (maxHeight - minHeight);
-                for (int j = 0; j < biomes.Length; j++)
-                {
-                    if (height < biomes[j].height)
-                    {
-                        colorMap[z * mapWidth + x] = biomes[j].color;
-                        break;
-                    }
-                }
-            }
-        }
+        //colorMap = new Color[vertices.Length];
+        //for (int z = 0, i = 0; z <= mapHeight; z++)
+        //{
+        //    for (int x = 0; x <= mapWidth; x++, i++)
+        //    {
+        //        float height = (vertices[i].y - minHeight) / (maxHeight - minHeight);
+        //        for (int j = 0; j < biomes.Length; j++)
+        //        {
+        //            if (height < biomes[j].height)
+        //            {
+        //                colorMap[z * mapWidth + x] = biomes[j].color;
+        //                break;
+        //            }
+        //        }
+        //    }
+        //}
 
         int[] tris = new int[mapWidth * mapHeight * 6];
         for (int ti = 0, vi = 0, z = 0; z < mapHeight; z++, vi++)
