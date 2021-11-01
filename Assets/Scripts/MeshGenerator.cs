@@ -4,7 +4,8 @@ public class MeshGenerator
 {
     public float minHeight;
     public float maxHeight;
-    public Color[] colorMap;
+    public float[] slope;
+    //public Color[] colorMap;
 
     public void GenerateMesh(float[,] noiseMap, Mesh mesh, int mapWidth, int mapHeight, float amplitude)
     {
@@ -12,6 +13,7 @@ public class MeshGenerator
 
         Vector3[] vertices = new Vector3[(mapWidth + 1) * (mapHeight + 1)];
         Vector2[] uv = new Vector2[vertices.Length];
+        slope = new float[vertices.Length];
 
         for (int z = 0, i = 0; z <= mapHeight; z++)
         {

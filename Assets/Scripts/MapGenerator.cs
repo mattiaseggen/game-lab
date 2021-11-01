@@ -9,7 +9,7 @@ public class MapGenerator : MonoBehaviour
     [Range(1, 10)]
     public int octaves;
     public float amplitude;
-    [Range(0, 10)]
+    //[Range(0, 10)]
     public float redistribution = 1f;
     public float xOffset = 0f;
     public float yOffset = 0f;

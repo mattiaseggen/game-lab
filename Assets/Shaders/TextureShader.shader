@@ -110,6 +110,8 @@ Shader "Custom/TextureShader"
             half3 tnormalY;
             half3 tnormalZ;
 
+            sampler2D tmp;
+
             //Normalise height of current vertex position
             float normHeight = (IN.worldPos.y - _MinHeight) / (_MaxHeight - _MinHeight);
             float blendValue;
@@ -128,12 +130,30 @@ Shader "Custom/TextureShader"
             {
                 if (normHeight < _LowerLimit)
                 {
-                    colX = tex2D (_BottomTex, uvX);
-                    colY = tex2D (_BottomTex, uvY);
-                    colZ = tex2D (_BottomTex, uvZ);
-                    tnormalY = UnpackNormal(tex2D(_BumpMapBottom, uvY));
-                    tnormalX = UnpackNormal(tex2D(_BumpMapBottom, uvX));
-                    tnormalZ = UnpackNormal(tex2D(_BumpMapBottom, uvZ));
+                    if (slope > _SlopeLimit - 0.05f && slope > _SlopeLimit + 0.05f)
+                    {
+                        float high = _SlopeLimit + 0.05f;
+                        float low = _SlopeLimit - 0.05f;
+
+                        float blendValue = (slope - _SlopeLimit) / (high - low);
+
+                        colX = lerp (tex2D (_SlopeTex, uvX), tex2D (_BottomTex, uvX), blendValue);
+                        colY = lerp (tex2D (_SlopeTex, uvY), tex2D (_BottomTex, uvY), blendValue);
+                        colZ = lerp (tex2D (_SlopeTex, uvZ), tex2D (_BottomTex, uvZ), blendValue);
+                        tnormalX = UnpackNormal(lerp(tex2D(_BumpMapSlope, uvX), tex2D(_BumpMapBottom, uvX), blendValue));
+                        tnormalY = UnpackNormal(lerp(tex2D(_BumpMapSlope, uvY), tex2D(_BumpMapBottom, uvY), blendValue));
+                        tnormalZ = UnpackNormal(lerp(tex2D(_BumpMapSlope, uvZ), tex2D(_BumpMapBottom, uvZ), blendValue));
+                    }
+                    else
+                    {
+                        colX = tex2D (_BottomTex, uvX);
+                        colY = tex2D (_BottomTex, uvY);
+                        colZ = tex2D (_BottomTex, uvZ);
+                        tnormalY = UnpackNormal(tex2D(_BumpMapBottom, uvY));
+                        tnormalX = UnpackNormal(tex2D(_BumpMapBottom, uvX));
+                        tnormalZ = UnpackNormal(tex2D(_BumpMapBottom, uvZ));
+                        tmp = _BottomTex;
+                    }
                 }
                 else if (normHeight < _LowerLimit + _BlendSize)
                 {
@@ -167,12 +187,29 @@ Shader "Custom/TextureShader"
                 }
                 else
                 {
-                    colX = tex2D (_TopTex, uvX);
-                    colY = tex2D (_TopTex, uvY);
-                    colZ = tex2D (_TopTex, uvZ);
-                    tnormalY = UnpackNormal(tex2D(_BumpMapTop, uvY));
-                    tnormalX = UnpackNormal(tex2D(_BumpMapTop, uvX));
-                    tnormalZ = UnpackNormal(tex2D(_BumpMapTop, uvZ));
+                    if (slope > _SlopeLimit - 0.05f && slope < _SlopeLimit + 0.05f)
+                    {
+                        float high = _SlopeLimit + 0.05f;
+                        float low = _SlopeLimit - 0.05f;
+
+                        float blendValue = (slope - low) / (high - low);
+
+                        colX = lerp (tex2D (_TopTex, uvX), tex2D (_SlopeTex, uvX), blendValue);
+                        colY = lerp (tex2D (_TopTex, uvY), tex2D (_SlopeTex, uvY), blendValue);
+                        colZ = lerp (tex2D (_TopTex, uvZ), tex2D (_SlopeTex, uvZ), blendValue);
+                        tnormalX = UnpackNormal(lerp(tex2D(_BumpMapTop, uvX), tex2D(_BumpMapSlope, uvX), blendValue));
+                        tnormalY = UnpackNormal(lerp(tex2D(_BumpMapTop, uvY), tex2D(_BumpMapSlope, uvY), blendValue));
+                        tnormalZ = UnpackNormal(lerp(tex2D(_BumpMapTop, uvZ), tex2D(_BumpMapSlope, uvZ), blendValue));
+                    }
+                    else
+                    {
+                        colX = tex2D (_TopTex, uvX);
+                        colY = tex2D (_TopTex, uvY);
+                        colZ = tex2D (_TopTex, uvZ);
+                        tnormalY = UnpackNormal(tex2D(_BumpMapTop, uvY));
+                        tnormalX = UnpackNormal(tex2D(_BumpMapTop, uvX));
+                        tnormalZ = UnpackNormal(tex2D(_BumpMapTop, uvZ));
+                    }
                 }
             }
 
