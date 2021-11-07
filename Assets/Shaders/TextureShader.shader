@@ -15,6 +15,7 @@ Shader "Custom/TextureShader"
 		_TextureScale ("Texture Scale",float) = 1
 		_TriplanarBlendSharpness ("Blend Sharpness",float) = 1
         _BlendSize ("Blend size", float) = 0.05
+        _SlopeBlendSize ("Slope Blend size", Range(0,0.3)) = 0.1
         [HideInInspector]_MaxHeight ("Highest", float) = 0
         [HideInInspector]_MinHeight ("Lowest", float) = 0
         _UpperLimit ("Upper limit", Range(0.3, 1)) = 0.5
@@ -39,10 +40,12 @@ Shader "Custom/TextureShader"
         sampler2D _BumpMapBottom;
         sampler2D _BumpMapMiddle;
         sampler2D _BumpMapTop;
+        fixed4 _Color;
 
         float _TextureScale;
         float _TriplanarBlendSharpness;
         float _BlendSize;
+        float _SlopeBlendSize;
         float _MinHeight;
         float _MaxHeight;
         float _LowerLimit;
@@ -110,107 +113,83 @@ Shader "Custom/TextureShader"
             half3 tnormalY;
             half3 tnormalZ;
 
-            sampler2D tmp;
+            sampler2D blendTexture;
 
             //Normalise height of current vertex position
             float normHeight = (IN.worldPos.y - _MinHeight) / (_MaxHeight - _MinHeight);
             float blendValue;
             float slope = 1.0f - IN.worldNormal.y;
 
+            if (normHeight < _LowerLimit)
+            {
+                colX = tex2D (_BottomTex, uvX);
+                colY = tex2D (_BottomTex, uvY);
+                colZ = tex2D (_BottomTex, uvZ);
+                tnormalY = UnpackNormal(tex2D(_BumpMapBottom, uvY));
+                tnormalX = UnpackNormal(tex2D(_BumpMapBottom, uvX));
+                tnormalZ = UnpackNormal(tex2D(_BumpMapBottom, uvZ));
+                blendTexture = _BottomTex;
+            }
+            else if (normHeight < _LowerLimit + _BlendSize)
+            {
+                blendValue = (normHeight - _LowerLimit) / _BlendSize;
+                colX = lerp (tex2D (_BottomTex, uvX), tex2D (_MiddleTex, uvX), blendValue);
+                colY = lerp (tex2D (_BottomTex, uvY), tex2D (_MiddleTex, uvY), blendValue);
+                colZ = lerp (tex2D (_BottomTex, uvZ), tex2D (_MiddleTex, uvZ), blendValue);
+                tnormalX = UnpackNormal(lerp(tex2D(_BumpMapBottom, uvX), tex2D(_BumpMapMiddle, uvX), blendValue));
+                tnormalY = UnpackNormal(lerp(tex2D(_BumpMapBottom, uvY), tex2D(_BumpMapMiddle, uvY), blendValue));
+                tnormalZ = UnpackNormal(lerp(tex2D(_BumpMapBottom, uvZ), tex2D(_BumpMapMiddle, uvZ), blendValue));
+
+            }
+            else if (normHeight < _UpperLimit)
+            {
+                colX = tex2D (_MiddleTex, uvX);
+                colY = tex2D (_MiddleTex, uvY);
+                colZ = tex2D (_MiddleTex, uvZ);
+                tnormalY = UnpackNormal(tex2D(_BumpMapMiddle, uvY));
+                tnormalX = UnpackNormal(tex2D(_BumpMapMiddle, uvX));
+                tnormalZ = UnpackNormal(tex2D(_BumpMapMiddle, uvZ));
+            }
+            else if (normHeight < _UpperLimit + _BlendSize)
+            {
+                blendValue = (normHeight - _UpperLimit) / _BlendSize;
+                colX = lerp (tex2D (_MiddleTex, uvX), tex2D (_TopTex, uvX), blendValue);
+                colY = lerp (tex2D (_MiddleTex, uvY), tex2D (_TopTex, uvY), blendValue);
+                colZ = lerp (tex2D (_MiddleTex, uvZ), tex2D (_TopTex, uvZ), blendValue);
+                tnormalX = UnpackNormal(lerp(tex2D(_BumpMapMiddle, uvX), tex2D(_BumpMapTop, uvX), blendValue));
+                tnormalY = UnpackNormal(lerp(tex2D(_BumpMapMiddle, uvY), tex2D(_BumpMapTop, uvY), blendValue));
+                tnormalZ = UnpackNormal(lerp(tex2D(_BumpMapMiddle, uvZ), tex2D(_BumpMapTop, uvZ), blendValue));
+            }
+            else
+            {
+                colX = tex2D (_TopTex, uvX);
+                colY = tex2D (_TopTex, uvY);
+                colZ = tex2D (_TopTex, uvZ);
+                tnormalY = UnpackNormal(tex2D(_BumpMapTop, uvY));
+                tnormalX = UnpackNormal(tex2D(_BumpMapTop, uvX));
+                tnormalZ = UnpackNormal(tex2D(_BumpMapTop, uvZ));
+            }
+
+            float slopeBlend = smoothstep(_SlopeLimit - _SlopeBlendSize, _SlopeLimit, slope);
+
             if (slope > _SlopeLimit)
             {
                 colX = tex2D (_SlopeTex, uvX);
                 colY = tex2D (_SlopeTex, uvY);
-			    colZ = tex2D (_SlopeTex, uvZ);
+                colZ = tex2D (_SlopeTex, uvZ);
                 tnormalY = UnpackNormal(tex2D(_BumpMapSlope, uvY));
                 tnormalX = UnpackNormal(tex2D(_BumpMapSlope, uvX));
                 tnormalZ = UnpackNormal(tex2D(_BumpMapSlope, uvZ));
             }
-            else
-            {
-                if (normHeight < _LowerLimit)
-                {
-                    if (slope > _SlopeLimit - 0.05f && slope > _SlopeLimit + 0.05f)
-                    {
-                        float high = _SlopeLimit + 0.05f;
-                        float low = _SlopeLimit - 0.05f;
 
-                        float blendValue = (slope - _SlopeLimit) / (high - low);
-
-                        colX = lerp (tex2D (_SlopeTex, uvX), tex2D (_BottomTex, uvX), blendValue);
-                        colY = lerp (tex2D (_SlopeTex, uvY), tex2D (_BottomTex, uvY), blendValue);
-                        colZ = lerp (tex2D (_SlopeTex, uvZ), tex2D (_BottomTex, uvZ), blendValue);
-                        tnormalX = UnpackNormal(lerp(tex2D(_BumpMapSlope, uvX), tex2D(_BumpMapBottom, uvX), blendValue));
-                        tnormalY = UnpackNormal(lerp(tex2D(_BumpMapSlope, uvY), tex2D(_BumpMapBottom, uvY), blendValue));
-                        tnormalZ = UnpackNormal(lerp(tex2D(_BumpMapSlope, uvZ), tex2D(_BumpMapBottom, uvZ), blendValue));
-                    }
-                    else
-                    {
-                        colX = tex2D (_BottomTex, uvX);
-                        colY = tex2D (_BottomTex, uvY);
-                        colZ = tex2D (_BottomTex, uvZ);
-                        tnormalY = UnpackNormal(tex2D(_BumpMapBottom, uvY));
-                        tnormalX = UnpackNormal(tex2D(_BumpMapBottom, uvX));
-                        tnormalZ = UnpackNormal(tex2D(_BumpMapBottom, uvZ));
-                        tmp = _BottomTex;
-                    }
-                }
-                else if (normHeight < _LowerLimit + _BlendSize)
-                {
-                    blendValue = (normHeight - _LowerLimit) / _BlendSize;
-                    colX = lerp (tex2D (_BottomTex, uvX), tex2D (_MiddleTex, uvX), blendValue);
-                    colY = lerp (tex2D (_BottomTex, uvY), tex2D (_MiddleTex, uvY), blendValue);
-                    colZ = lerp (tex2D (_BottomTex, uvZ), tex2D (_MiddleTex, uvZ), blendValue);
-                    tnormalX = UnpackNormal(lerp(tex2D(_BumpMapBottom, uvX), tex2D(_BumpMapMiddle, uvX), blendValue));
-                    tnormalY = UnpackNormal(lerp(tex2D(_BumpMapBottom, uvY), tex2D(_BumpMapMiddle, uvY), blendValue));
-                    tnormalZ = UnpackNormal(lerp(tex2D(_BumpMapBottom, uvZ), tex2D(_BumpMapMiddle, uvZ), blendValue));
-
-                }
-                else if (normHeight < _UpperLimit)
-                {
-                    colX = tex2D (_MiddleTex, uvX);
-                    colY = tex2D (_MiddleTex, uvY);
-                    colZ = tex2D (_MiddleTex, uvZ);
-                    tnormalY = UnpackNormal(tex2D(_BumpMapMiddle, uvY));
-                    tnormalX = UnpackNormal(tex2D(_BumpMapMiddle, uvX));
-                    tnormalZ = UnpackNormal(tex2D(_BumpMapMiddle, uvZ));
-                }
-                else if (normHeight < _UpperLimit + _BlendSize)
-                {
-                    blendValue = (normHeight - _UpperLimit) / _BlendSize;
-                    colX = lerp (tex2D (_MiddleTex, uvX), tex2D (_TopTex, uvX), blendValue);
-                    colY = lerp (tex2D (_MiddleTex, uvY), tex2D (_TopTex, uvY), blendValue);
-                    colZ = lerp (tex2D (_MiddleTex, uvZ), tex2D (_TopTex, uvZ), blendValue);
-                    tnormalX = UnpackNormal(lerp(tex2D(_BumpMapMiddle, uvX), tex2D(_BumpMapTop, uvX), blendValue));
-                    tnormalY = UnpackNormal(lerp(tex2D(_BumpMapMiddle, uvY), tex2D(_BumpMapTop, uvY), blendValue));
-                    tnormalZ = UnpackNormal(lerp(tex2D(_BumpMapMiddle, uvZ), tex2D(_BumpMapTop, uvZ), blendValue));
-                }
-                else
-                {
-                    if (slope > _SlopeLimit - 0.05f && slope < _SlopeLimit + 0.05f)
-                    {
-                        float high = _SlopeLimit + 0.05f;
-                        float low = _SlopeLimit - 0.05f;
-
-                        float blendValue = (slope - low) / (high - low);
-
-                        colX = lerp (tex2D (_TopTex, uvX), tex2D (_SlopeTex, uvX), blendValue);
-                        colY = lerp (tex2D (_TopTex, uvY), tex2D (_SlopeTex, uvY), blendValue);
-                        colZ = lerp (tex2D (_TopTex, uvZ), tex2D (_SlopeTex, uvZ), blendValue);
-                        tnormalX = UnpackNormal(lerp(tex2D(_BumpMapTop, uvX), tex2D(_BumpMapSlope, uvX), blendValue));
-                        tnormalY = UnpackNormal(lerp(tex2D(_BumpMapTop, uvY), tex2D(_BumpMapSlope, uvY), blendValue));
-                        tnormalZ = UnpackNormal(lerp(tex2D(_BumpMapTop, uvZ), tex2D(_BumpMapSlope, uvZ), blendValue));
-                    }
-                    else
-                    {
-                        colX = tex2D (_TopTex, uvX);
-                        colY = tex2D (_TopTex, uvY);
-                        colZ = tex2D (_TopTex, uvZ);
-                        tnormalY = UnpackNormal(tex2D(_BumpMapTop, uvY));
-                        tnormalX = UnpackNormal(tex2D(_BumpMapTop, uvX));
-                        tnormalZ = UnpackNormal(tex2D(_BumpMapTop, uvZ));
-                    }
-                }
+            if (slope < _SlopeLimit && slope > _SlopeLimit - _SlopeBlendSize)
+            {        
+                colX = lerp (colX, tex2D (_SlopeTex, uvX), slopeBlend);
+                colY = lerp (colY, tex2D (_SlopeTex, uvY), slopeBlend);
+                colZ = lerp (colZ, tex2D (_SlopeTex, uvZ), slopeBlend);
+                tnormalX = UnpackNormal(lerp(tex2D(_BumpMapMiddle, uvX), tex2D(_BumpMapSlope, uvX), slopeBlend));
+                tnormalY = UnpackNormal(lerp(tex2D(_BumpMapMiddle, uvY), tex2D(_BumpMapSlope, uvY), slopeBlend));
+                tnormalZ = UnpackNormal(lerp(tex2D(_BumpMapMiddle, uvZ), tex2D(_BumpMapSlope, uvZ), slopeBlend));
             }
 
             // flip normal maps' x axis to account for flipped UVs
